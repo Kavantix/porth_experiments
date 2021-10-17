@@ -37,7 +37,7 @@ end
 // param: p -- ptr given by malloc
 // returns: bool
 macro free
-  if dup NULL = do
+  if dup cast(int) NULL = do
     drop
     true
   else
