@@ -1,0 +1,63 @@
+// test -> t * c^0 + e * c^1 + s * c^2 ...
+
+include "std.porth"
+include "./malloc.porth"
+include "./shared.porth"
+def-scratch
+
+macro s @scratch cast(ptr) end
+macro @s s @Str end
+macro @s.count s @Str.count end
+macro @s.data s @Str.data end
+macro !s s !Str end
+macro hash_value s sizeof(Str) + end
+macro @hash_value hash_value @64 end
+macro !hash_value hash_value !64 end
+macro p_pow hash_value sizeof(u64) + end
+macro @p_pow p_pow @64 end
+macro !p_pow p_pow !64 end
+macro hash_str_variable_sizes
+  sizeof(Str) // s
+  sizeof(u64) + // hash_value
+  sizeof(u64) + // p_pow
+end
+
+
+
+// Input: Str(count *data)
+macro hash_str
+  hash_str_variable_sizes malloc !scratch
+  !s
+  hash_str_inner
+  @scratch free drop
+end
+
+// long long compute_hash(string const& s) {
+//     const int p = 31;
+//     const int m = 1e9 + 9;
+//     long long hash_value = 0;
+//     long long p_pow = 1;
+//     for (char c : s) {
+//         hash_value = (hash_value + (c - 'a' + 1) * p_pow) % m;
+//         p_pow = (p_pow * p) % m;
+//     }
+//     return hash_value;
+// }
+
+macro p 31 end
+macro m 1000000009 end
+
+macro hash_str_inner
+  0 !hash_value
+  1 !p_pow
+  0 while dup @s.count < do
+    // (c - 'a' + 1)
+    dup @s.data + @8 'a' - 1 + @p_pow * m mod
+    @hash_value + !hash_value
+    @p_pow p * m mod !p_pow
+    1 +
+  end drop
+  @hash_value
+end
+
+"teststt" hash_str print
