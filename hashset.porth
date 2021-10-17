@@ -23,33 +23,33 @@ macro hashsetValue.value sizeof(u64) + end
 macro @hashsetValue.value hashsetValue.value @Str end
 macro !hashsetValue.value hashsetValue.value !Str end
 
-macro sizeof(hashset.putptr)
+macro sizeof(hashset.argholder)
   sizeof(Str)   // key
   sizeof(u64) + // hash
 end
-macro hashset.putptr hashset_current end
-macro !hashset.putptr hashset.putptr !64 end
-macro @hashset.putptr hashset.putptr @64 cast(ptr) end
-macro hashset.putptr.key @hashset.putptr end
-macro @hashset.putptr.key.count hashset.putptr.key @Str.count end
-macro @hashset.putptr.key.data hashset.putptr.key @Str.data end
-macro @hashset.putptr.key hashset.putptr.key @Str end
-macro !hashset.putptr.key hashset.putptr.key !Str end
-macro hashset.putptr.hash hashset.putptr.key sizeof(Str) + end
-macro @hashset.putptr.hash hashset.putptr.hash @64 end
-macro !hashset.putptr.hash hashset.putptr.hash !64 end
+macro hashset.argholder hashset_current end
+macro !hashset.argholder hashset.argholder !64 end
+macro @hashset.argholder hashset.argholder @64 cast(ptr) end
+macro hashset.argholder.key @hashset.argholder end
+macro @hashset.argholder.key.count hashset.argholder.key @Str.count end
+macro @hashset.argholder.key.data hashset.argholder.key @Str.data end
+macro @hashset.argholder.key hashset.argholder.key @Str end
+macro !hashset.argholder.key hashset.argholder.key !Str end
+macro hashset.argholder.hash hashset.argholder.key sizeof(Str) + end
+macro @hashset.argholder.hash hashset.argholder.hash @64 end
+macro !hashset.argholder.hash hashset.argholder.hash !64 end
 
 macro hashset_current @scratch cast(ptr) end
 macro !hashset_current !scratch end
 
 macro len(hashset.values) 256 end
-macro hashset.values hashset.putptr sizeof(u64) + end
+macro hashset.values hashset.argholder sizeof(u64) + end
 macro !hashset.values hashset.values !64 end
 macro @hashset.values hashset.values @64 cast(ptr) end
 
 macro hashset.new
   sizeof(hashset) malloc !hashset_current
-  sizeof(hashset.putptr) malloc !hashset.putptr
+  sizeof(hashset.argholder) malloc !hashset.argholder
   sizeof(hashsetValue) len(hashset.values) * malloc !hashset.values
   hashset_current
 end
@@ -61,33 +61,33 @@ macro @hashset.length len(hashset.values) end
 macro hashset.delete 
   !hashset_current
   @hashset.values free drop
-  @hashset.putptr free drop
+  @hashset.argholder free drop
   hashset_current free drop
 end
 
 // inputs: *hashset key(Str(count *data)) to put in set
 macro hashset.put
   rot !hashset_current // save current hashset we are working with
-  !hashset.putptr.key // save the given key
+  !hashset.argholder.key // save the given key
 
-  @hashset.putptr.key hash_str !hashset.putptr.hash
-  @hashset.putptr.hash @hashset.length mod // index
+  @hashset.argholder.key hash_str !hashset.argholder.hash
+  @hashset.argholder.hash @hashset.length mod // index
   sizeof(hashsetValue) * @hashset.values +
-  dup @hashset.putptr.key rot !hashsetValue.value
-      @hashset.putptr.hash swap !hashsetValue.hash
+  dup @hashset.argholder.key rot !hashsetValue.value
+      @hashset.argholder.hash swap !hashsetValue.hash
 
 end
 
 macro hashset.contains
   rot !hashset_current
-  !hashset.putptr.key // save the given key
+  !hashset.argholder.key // save the given key
 
   hashset_current
-  @hashset.putptr.key hash_str !hashset.putptr.hash
-  @hashset.putptr.hash @hashset.length mod // index
+  @hashset.argholder.key hash_str !hashset.argholder.hash
+  @hashset.argholder.hash @hashset.length mod // index
   sizeof(hashsetValue) * @hashset.values +
   if dup @hashsetValue.hash 0 != do
-     @hashset.putptr.key rot @hashsetValue.value streq
+     @hashset.argholder.key rot @hashsetValue.value streq
   else
     drop
     false
@@ -100,7 +100,7 @@ end
 // returns: bool indicating if removed
 macro hashset.remove
   if hashset.contains do
-    @hashset.putptr.hash @hashset.length mod // index
+    @hashset.argholder.hash @hashset.length mod // index
     sizeof(hashsetValue) * @hashset.values +
     dup 0 NULL rot !hashsetValue.value
         0 swap !hashsetValue.hash
