@@ -2,6 +2,7 @@ include "std.porth"
 include "./malloc.porth"
 include "./shared.porth"
 include "./hash.porth"
+include "./streq.porth"
 def-scratch
 
 macro sizeof(hashset)
@@ -82,12 +83,42 @@ macro hashset.contains
   sizeof(hashset.putptr) malloc !hashset.putptr
   !hashset.putptr.key // save the given key
 
+  hashset_current
   @hashset.putptr.key hash_str !hashset.putptr.hash
   @hashset.putptr.hash @hashset.length mod // index
   sizeof(hashsetValue) * @hashset.values +
-  @hashsetValue.hash 0 !=
+  if dup @hashsetValue.hash 0 != do
+     @hashset.putptr.key rot @hashsetValue.value streq
+  else
+    drop
+    false
+  end
 
+  swap !hashset_current
   @hashset.putptr free drop
+end
+
+// inputs: set key(count, *data)
+// returns: bool indicating if removed
+macro hashset.remove
+  rot !hashset_current // save current hashset we are working with
+  2dup hashset_current rot rot
+  if hashset.contains do
+    sizeof(hashset.putptr) malloc !hashset.putptr
+    !hashset.putptr.key // save the given key
+
+    @hashset.putptr.key hash_str !hashset.putptr.hash
+    @hashset.putptr.hash @hashset.length mod // index
+    sizeof(hashsetValue) * @hashset.values +
+    dup 0 NULL rot !hashsetValue.value
+        0 swap !hashsetValue.hash
+
+    @hashset.putptr free drop
+    true
+  else
+    2drop
+    false
+  end
 end
 
 macro hashset.print
@@ -108,9 +139,17 @@ hashset.new
 dup "testtet" hashset.put
 dup "whut" hashset.put
 dup "ola" hashset.put
-dup hashset.print
+dup "tttt" hashset.put
+// dup hashset.print
 "Hashset contains 'whut': " eputs
 if dup "whut" hashset.contains do "yes" else "no" end eputsln
-"Hashset contains 'wut': " eputs
-if dup "wut" hashset.contains do "yes" else "no" end eputsln
+"Removing 'whut'" eputsln
+if dup "whut" hashset.remove do
+  "Removed 'whut'" eputsln
+else
+  "Did not need to remove 'whut'" eputsln
+end
+"Hashset contains 'whut': " eputs
+if dup "whut" hashset.contains do "yes" else "no" end eputsln
+// dup hashset.print
 hashset.delete
