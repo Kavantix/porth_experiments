@@ -77,6 +77,19 @@ macro hashset.put
   @hashset.putptr free drop
 end
 
+macro hashset.contains
+  rot !hashset_current
+  sizeof(hashset.putptr) malloc !hashset.putptr
+  !hashset.putptr.key // save the given key
+
+  @hashset.putptr.key hash_str !hashset.putptr.hash
+  @hashset.putptr.hash @hashset.length mod // index
+  sizeof(hashsetValue) * @hashset.values +
+  @hashsetValue.hash 0 !=
+
+  @hashset.putptr free drop
+end
+
 macro hashset.print
   !hashset_current
   "hashset stored at:" eputs hashset_current print
@@ -96,4 +109,8 @@ dup "testtet" hashset.put
 dup "whut" hashset.put
 dup "ola" hashset.put
 dup hashset.print
+"Hashset contains 'whut': " eputs
+if dup "whut" hashset.contains do "yes" else "no" end eputsln
+"Hashset contains 'wut': " eputs
+if dup "wut" hashset.contains do "yes" else "no" end eputsln
 hashset.delete
