@@ -9,9 +9,6 @@
 macro streq_a @scratch cast(ptr) end
 macro streq_b @scratch sizeof(Str) + cast(ptr) end
 
-macro putsln puts "\n" puts end
-macro eputsln eputs "\n" eputs end
-
 macro streq // n1 s1 n2 s2
   sizeof(Str) 2 * malloc !scratch // allocate 2 strings in heap
   streq_a !Str

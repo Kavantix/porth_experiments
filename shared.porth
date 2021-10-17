@@ -4,3 +4,7 @@ macro def-scratch
   macro @scratch mem @64 end
   macro !scratch mem !64 end
 end
+
+macro putsln puts "\n" puts end
+macro eputsln eputs "\n" eputs end
+

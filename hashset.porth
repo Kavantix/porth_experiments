@@ -1,0 +1,99 @@
+include "std.porth"
+include "./malloc.porth"
+include "./shared.porth"
+include "./hash.porth"
+def-scratch
+
+macro sizeof(hashset)
+  sizeof(u64)   // scratch data hashset.put
+  sizeof(u64) + // pointer to data of set
+end
+
+
+macro sizeof(hashsetValue)
+  sizeof(u64)   // hash
+  sizeof(Str) + // value
+end
+
+macro hashsetValue.hash end
+macro @hashsetValue.hash hashsetValue.hash @64 end
+macro !hashsetValue.hash hashsetValue.hash !64 end
+macro hashsetValue.value sizeof(u64) + end
+macro @hashsetValue.value hashsetValue.value @Str end
+macro !hashsetValue.value hashsetValue.value !Str end
+
+macro sizeof(hashset.putptr)
+  sizeof(Str)   // key
+  sizeof(u64) + // hash
+end
+macro hashset.putptr hashset_current end
+macro !hashset.putptr hashset.putptr !64 end
+macro @hashset.putptr hashset.putptr @64 cast(ptr) end
+macro hashset.putptr.key @hashset.putptr end
+macro @hashset.putptr.key.count hashset.putptr.key @Str.count end
+macro @hashset.putptr.key.data hashset.putptr.key @Str.data end
+macro @hashset.putptr.key hashset.putptr.key @Str end
+macro !hashset.putptr.key hashset.putptr.key !Str end
+macro hashset.putptr.hash hashset.putptr.key sizeof(Str) + end
+macro @hashset.putptr.hash hashset.putptr.hash @64 end
+macro !hashset.putptr.hash hashset.putptr.hash !64 end
+
+macro hashset_current @scratch cast(ptr) end
+macro !hashset_current !scratch end
+
+macro len(hashset.values) 256 end
+macro hashset.values hashset.putptr sizeof(u64) + end
+macro !hashset.values hashset.values !64 end
+macro @hashset.values hashset.values @64 cast(ptr) end
+
+macro hashset.new
+  sizeof(hashset) malloc !hashset_current
+  sizeof(hashsetValue) len(hashset.values) * malloc !hashset.values
+  hashset_current
+end
+
+macro hashset.length len(hashset.values) end
+macro @hashset.length len(hashset.values) end
+
+
+macro hashset.delete 
+  !hashset_current
+  @hashset.values free drop
+  hashset_current free drop
+end
+
+// inputs: *hashset key(Str(count *data)) to put in set
+macro hashset.put
+  rot !hashset_current // save current hashset we are working with
+  sizeof(hashset.putptr) malloc !hashset.putptr
+  !hashset.putptr.key // save the given key
+
+  @hashset.putptr.key hash_str !hashset.putptr.hash
+  @hashset.putptr.hash @hashset.length mod // index
+  sizeof(hashsetValue) * @hashset.values +
+  dup @hashset.putptr.key rot !hashsetValue.value
+      @hashset.putptr.hash swap !hashsetValue.hash
+
+  @hashset.putptr free drop
+end
+
+macro hashset.print
+  !hashset_current
+  "hashset stored at:" eputs hashset_current print
+  "values: " eputsln
+  0 while dup @hashset.length < do
+    "  '" eputs
+    dup sizeof(hashsetValue) * @hashset.values +
+    dup @hashsetValue.value eputs
+    "': " eputs
+        @hashsetValue.hash print
+    1 +
+  end drop
+end
+
+hashset.new
+dup "testtet" hashset.put
+dup "whut" hashset.put
+dup "ola" hashset.put
+dup hashset.print
+hashset.delete

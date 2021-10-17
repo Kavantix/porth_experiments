@@ -10,3 +10,4 @@ tests/streq
 streqtest
 examples/fib_variables
 hash
+hashset

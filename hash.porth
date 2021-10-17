@@ -3,7 +3,16 @@
 // include "./shared.porth"
 // def-scratch
 
-macro s @scratch cast(ptr) end
+macro hash_str_variable_sizes
+  sizeof(u64)   // scratch restore
+  sizeof(Str) + // s
+  sizeof(u64) + // hash_value
+  sizeof(u64) + // p_pow
+end
+macro hash_str.oldscratch @scratch cast(ptr) end
+macro @hash_str.oldscratch hash_str.oldscratch @64 end
+macro !hash_str.oldscratch hash_str.oldscratch !64 end
+macro s hash_str.oldscratch sizeof(u64) + end
 macro @s s @Str end
 macro @s.count s @Str.count end
 macro @s.data s @Str.data end
@@ -14,20 +23,21 @@ macro !hash_value hash_value !64 end
 macro p_pow hash_value sizeof(u64) + end
 macro @p_pow p_pow @64 end
 macro !p_pow p_pow !64 end
-macro hash_str_variable_sizes
-  sizeof(Str) // s
-  sizeof(u64) + // hash_value
-  sizeof(u64) + // p_pow
-end
 
 
 
 // Input: Str(count *data)
 macro hash_str
+  @scratch
   hash_str_variable_sizes malloc !scratch
+  !hash_str.oldscratch
+
   !s
   hash_str_inner
+
+  @hash_str.oldscratch
   @scratch free drop
+  !scratch
 end
 
 // long long compute_hash(string const& s) {
