@@ -1,0 +1,46 @@
+include "std.porth"
+include "../malloc.porth"
+include "../shared.porth"
+
+def-scratch
+
+macro fib_a @scratch cast(ptr) end
+macro @fib_a fib_a @64 end
+macro !fib_a fib_a !64 end
+macro fib_b @scratch sizeof(u64) + cast(ptr) end
+macro @fib_b fib_b @64 end
+macro !fib_b fib_b !64 end
+macro fib_n @scratch sizeof(u64) 2 * + cast(ptr) end
+macro @fib_n fib_n @64 end
+macro !fib_n fib_n !64 end
+
+// Inputs: n -- calculates the nth fib number
+macro fibn
+  if dup 1 = do
+    drop 1
+  elif dup 2 = do
+    drop 1
+  else
+    2 -
+    sizeof(u64) 3 * malloc !scratch
+    !fib_n
+    1 !fib_a
+    1 !fib_b
+    fib_inner
+    @scratch free drop
+  end
+end
+
+// Inputs: none all in malloced memory
+macro fib_inner
+  while @fib_n 0 > do
+    @fib_b @fib_a +
+    @fib_b !fib_a
+    !fib_b
+    fib_n dec64
+  end
+  @fib_b
+end
+
+1 fibn print
+6 fibn print
