@@ -49,6 +49,7 @@ macro @hashset.values hashset.values @64 cast(ptr) end
 
 macro hashset.new
   sizeof(hashset) malloc !hashset_current
+  sizeof(hashset.putptr) malloc !hashset.putptr
   sizeof(hashsetValue) len(hashset.values) * malloc !hashset.values
   hashset_current
 end
@@ -60,13 +61,13 @@ macro @hashset.length len(hashset.values) end
 macro hashset.delete 
   !hashset_current
   @hashset.values free drop
+  @hashset.putptr free drop
   hashset_current free drop
 end
 
 // inputs: *hashset key(Str(count *data)) to put in set
 macro hashset.put
   rot !hashset_current // save current hashset we are working with
-  sizeof(hashset.putptr) malloc !hashset.putptr
   !hashset.putptr.key // save the given key
 
   @hashset.putptr.key hash_str !hashset.putptr.hash
@@ -75,12 +76,10 @@ macro hashset.put
   dup @hashset.putptr.key rot !hashsetValue.value
       @hashset.putptr.hash swap !hashsetValue.hash
 
-  @hashset.putptr free drop
 end
 
 macro hashset.contains
   rot !hashset_current
-  sizeof(hashset.putptr) malloc !hashset.putptr
   !hashset.putptr.key // save the given key
 
   hashset_current
@@ -95,28 +94,18 @@ macro hashset.contains
   end
 
   swap !hashset_current
-  @hashset.putptr free drop
 end
 
 // inputs: set key(count, *data)
 // returns: bool indicating if removed
 macro hashset.remove
-  rot !hashset_current // save current hashset we are working with
-  2dup hashset_current rot rot
   if hashset.contains do
-    sizeof(hashset.putptr) malloc !hashset.putptr
-    !hashset.putptr.key // save the given key
-
-    @hashset.putptr.key hash_str !hashset.putptr.hash
     @hashset.putptr.hash @hashset.length mod // index
     sizeof(hashsetValue) * @hashset.values +
     dup 0 NULL rot !hashsetValue.value
         0 swap !hashsetValue.hash
-
-    @hashset.putptr free drop
     true
   else
-    2drop
     false
   end
 end
