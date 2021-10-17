@@ -1,0 +1,207 @@
+//  CURRENTLY BROKEN
+
+include "std.porth"
+include "./pieter/malloc.porth"
+
+macro sizeof(PTR) 8 end
+macro sizeof(Int64) 8 end
+
+macro PUTD_PTR mem end
+macro PUTD_BUFFER PUTD_PTR @64 cast(ptr) end
+macro PUTD_BUFFER_CAP 32 end
+macro FLAGS_PTR PUTD_PTR sizeof(PTR) + end
+macro FLAGS_BUFFER FLAGS_PTR @64 cast(ptr) end
+macro HAS_FLAG_BUFFER FLAGS_BUFFER end
+macro HAS_FLAG_BUFFER_CAP sizeof(Str) end
+macro flag_usage HAS_FLAG_BUFFER HAS_FLAG_BUFFER_CAP + end
+macro FLAG_USAGE_SIZE sizeof(PTR) end
+macro flag_count flag_usage FLAG_USAGE_SIZE + end
+macro @flag_count flag_count @64 end
+macro FLAG_COUNT_SIZE sizeof(PTR) end
+macro sizeof(flags) sizeof(PTR) end
+macro flags flag_count FLAG_COUNT_SIZE + end
+
+macro usermem FLAGS_PTR sizeof(flags) + end
+
+macro Flag.name nop end
+macro @Flag.name Flag.name @64 cast(ptr) @Str end
+macro FLAG_VALUE sizeof(Str) + end
+macro FLAG_TYPE FLAG_VALUE sizeof(Str) + end
+macro FLAG_SIZE sizeof(Str) sizeof(Str) + sizeof(Int64) + end
+
+macro FLAG_BOOL 1 end
+macro FLAG_STRING 2 end
+
+
+macro flags.init
+  2048 malloc
+  if dup cast(int) 0 < do
+    "Failed to allocate memory for flags buffer\n" eputs
+    1 exit
+  end
+  FLAGS_PTR !64
+end
+flags.init
+
+// params: int
+macro putintbool
+  if dup 0 = do
+    "no" puts
+  else if dup 1 = do
+    "yes" puts
+  else
+    "NOT_A_BOOL" puts
+  end end
+  drop
+end
+
+macro putd.init
+  PUTD_BUFFER_CAP malloc
+  if dup cast(int) 0 < do
+    "Failed to allocate memory for putd buffer\n" eputs
+    1 exit
+  end
+  PUTD_PTR !64
+end
+
+macro putd // u64 --
+  if PUTD_PTR @64 NULL = do
+    putd.init
+  end
+  if dup 0 = do
+    "0" puts
+  else
+    PUTD_BUFFER PUTD_BUFFER_CAP +
+    while over 0 > do
+      1 - dup rot
+      10 divmod
+      rot swap '0' + . swap
+    end
+
+    dup
+    PUTD_BUFFER PUTD_BUFFER_CAP + swap - swap puts
+  end
+  drop
+end
+
+// params: name(*cstring) default_value(bool)
+// returns: *int
+macro flag.bool
+  flag_count ,64 FLAG_SIZE * flags +
+  dup FLAG_VALUE 
+  if rot do 1 else 0 end .64
+  dup Flag.name rot .64
+  dup FLAG_TYPE FLAG_BOOL .64
+  FLAG_VALUE
+  flag_count inc64
+  flag_usage dup ,64 FLAG_SIZE + .64
+end
+
+// params: name(*cstring) default_value(*cstring)
+// returns: (*cstring)
+macro flag.string
+  flag_count ,64 FLAG_SIZE * flags +
+  dup FLAG_VALUE rot .64
+  dup Flag.name rot .64
+  dup FLAG_TYPE FLAG_STRING .64
+  FLAG_VALUE
+  flag_count inc64
+  flag_usage dup ,64 FLAG_SIZE + .64
+end
+
+macro dump_flags
+  flag_count ,64 0 while 2dup > do
+    dup FLAG_SIZE * flags +
+    dup @Flag.name puts
+    ": " puts
+    dup FLAG_VALUE ,64
+    over FLAG_TYPE ,64
+    if dup FLAG_BOOL = do
+      drop
+      putintbool
+    else if dup FLAG_STRING = do
+      drop
+      cast(ptr) cstr-to-pstr puts
+    else
+    "ERROR: UNKOWN TYPE: " puts putd
+    drop
+    end end
+    "\n" puts
+    drop
+    1 +
+  end 2drop
+end
+
+macro parse_flags
+  flag_count ,64 while dup 0 > do
+    1 -
+    dup FLAG_SIZE * flags +
+    0 while dup argc < do
+      if dup nth_argv , '-' = do
+        if over @Flag.name over nth_argv 1 + cstreq do
+          over FLAG_TYPE ,64
+          if dup FLAG_BOOL = do
+            drop
+            over FLAG_VALUE 1 .64
+          else if dup FLAG_STRING = do
+            drop
+            if dup argc 1 - = do
+              "flag `" eputs
+              over @Flag.name cstr-to-pstr eputs
+              "` requires a value\n" eputs
+              exit 1
+            else
+              1 +
+              over FLAG_VALUE
+              over nth_argv .64
+            end
+          else
+            drop
+            "flag `" eputs
+            over @Flag.name cstr-to-pstr eputs
+            "` requires a value\n" eputs
+            exit 1
+          end end
+        end
+      end
+      1 +
+    end drop
+    drop
+  end drop
+end
+
+// inputs: count data (Str)
+macro has_flag
+  // false 
+  HAS_FLAG_BUFFER !Str
+  false
+  @flag_count while dup 0 > do
+    1 -
+    dup FLAG_SIZE * flags +
+    if dup @Flag.name HAS_FLAG_BUFFER streq do
+      FLAG_VALUE ,64 1 =
+      rot or
+      swap
+    else
+      drop
+    end
+  end drop
+end
+
+usermem                   "foo"c "bar"c flag.string swap !64
+usermem sizeof(PTR)     + "ola"c false flag.bool swap !64
+usermem sizeof(PTR) 2 * + "hello"c false flag.bool swap !64
+parse_flags
+"using: " puts flag_usage ,64 putd " bytes\n" puts
+"has hello flag: " puts
+if "hello" has_flag do
+  "yes\n" puts
+else
+  "no\n" puts
+end
+
+"value of hello: " puts usermem 16 + ,64 cast(ptr) ,64 putintbool "\n" puts
+"value of foo: " puts usermem ,64 cast(ptr) ,64 cast(ptr) cstr-to-pstr puts "\n" puts
+
+"\ndumping all flags: \n" puts
+dump_flags

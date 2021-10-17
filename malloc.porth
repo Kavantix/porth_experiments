@@ -1,0 +1,59 @@
+// include "std.porth"
+
+// param: s -- size in bytes
+// returns: p | -1 -- pointer to allocated memory or -1 if failed
+macro malloc
+  if dup 0 = do
+    drop
+    NULL cast(ptr)
+  else
+    // s
+    8 + // add 8 bytes to the size so we store the actual size in the allocated memory
+    dup
+    // s s
+    0 swap // offset
+    -1 swap // fd
+    // MAP_PRIVATE=2
+    32 2 or swap // flags = MAP_ANONYMOUS | MAP_ANONYMOUS
+    // PROT_READ=1 PROT_WRITE=2
+    3 swap // prot = PROT_READ | PROT_WRITE
+    nop // (size + 8) size is on the stack
+    NULL // let linux decide the address
+    mmap cast(ptr)
+    // s ptr|err
+
+    if dup cast(int) 0 < do
+      2drop -1 cast(ptr)
+    else 
+      // Store the size in the first 8 bytes of the allocated memory
+      // And return the pointer to the start of the user's memory
+      2dup !64
+      swap drop
+      8 +
+    end
+  end
+end
+
+// param: p -- ptr given by malloc
+// returns: bool
+macro free
+  if dup NULL = do
+    drop
+    true
+  else
+    sizeof(u64) -
+    dup cast(ptr) @64
+    swap
+    munmap 0 >=
+  end
+end
+
+
+// 64 malloc
+// if dup cast(int) 0 < do
+//   here eputs " Failed to allocate memory\n" eputs
+//   drop
+// else
+//   "Successfully allocated memory at: " puts dup print
+//   "Size of allocated memory(bytes) is: " puts 8 - @64 print
+// end
