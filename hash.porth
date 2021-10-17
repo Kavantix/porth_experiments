@@ -1,7 +1,7 @@
-include "std.porth"
-include "./malloc.porth"
-include "./shared.porth"
-def-scratch
+// include "std.porth"
+// include "./malloc.porth"
+// include "./shared.porth"
+// def-scratch
 
 macro s @scratch cast(ptr) end
 macro @s s @Str end
@@ -56,13 +56,5 @@ macro hash_str_inner
     1 +
   end drop
   @hash_value
-end
-
-if argc 2 < do
-  "No string to hash provided" eputs
-  1 exit
-else
-  "The hash of your string: \n" eputs
-  1 nth_argv cstr-to-str hash_str print
 end
 
