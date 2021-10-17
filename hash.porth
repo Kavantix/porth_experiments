@@ -1,5 +1,3 @@
-// test -> t * c^0 + e * c^1 + s * c^2 ...
-
 include "std.porth"
 include "./malloc.porth"
 include "./shared.porth"
@@ -60,4 +58,11 @@ macro hash_str_inner
   @hash_value
 end
 
-"teststt" hash_str print
+if argc 2 < do
+  "No string to hash provided" eputs
+  1 exit
+else
+  "The hash of your string: \n" eputs
+  1 nth_argv cstr-to-str hash_str print
+end
+
