@@ -1,0 +1,6 @@
+macro def-scratch
+  macro scratch mem end
+  macro sizeof(scratch) sizeof(u64) end
+  macro @scratch mem @64 end
+  macro !scratch mem !64 end
+end

@@ -1,14 +1,17 @@
 include "std.porth"
 include "../malloc.porth"
 include "../streq.porth"
+include "../shared.porth"
 
-macro scratch mem end
-macro sizeof(scratch) sizeof(u64) end
-macro @scratch mem @64 end
-macro !scratch mem !64 end
+def-scratch
 
 if "test" "test" streq do
-  "Strings are equal" putsln
+  "test == test" putsln
 else
-  "Strings are not equal" putsln
+  "test != test" putsln
+end
+if "test" "test2" streq do
+  "test == test2" putsln
+else
+  "test != test2" putsln
 end

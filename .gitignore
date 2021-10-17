@@ -5,3 +5,6 @@ input
 *.dot
 
 malloc
+
+tests/streq
+streqtest
