@@ -19,7 +19,7 @@ proc malloc
     3 swap // prot = PROT_READ | PROT_WRITE
     nop // (size + 8) size is on the stack
     NULL // let linux decide the address
-    mmap cast(ptr)
+    SYS_mmap syscall6 cast(ptr)
     // s ptr|err
 
     dup cast(int) 0 < if
@@ -44,7 +44,7 @@ proc free
     8 -
     dup cast(ptr) @64
     swap
-    munmap 0 >=
+    SYS_munmap syscall2 0 >=
   end
 end
 
