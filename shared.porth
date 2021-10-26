@@ -1,10 +1,10 @@
-macro def-scratch
   macro scratch mem end
   macro sizeof(scratch) sizeof(u64) end
   macro @scratch mem @64 end
   macro !scratch mem !64 end
-end
 
 macro putsln puts "\n" puts end
 macro eputsln eputs "\n" eputs end
+proc !ptr !64 end
+proc @ptr @64 cast(ptr) end
 

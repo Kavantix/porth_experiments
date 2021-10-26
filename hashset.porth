@@ -2,16 +2,8 @@ include "std.porth"
 include "./malloc.porth"
 include "./shared.porth"
 include "./hash.porth"
-include "./streq.porth"
-def-scratch
 
-macro sizeof(hashset)
-  sizeof(u64)   // scratch data hashset.put
-  sizeof(u64) + // pointer to data of set
-end
-
-
-macro sizeof(hashsetValue)
+const sizeof(HashsetValue)
   sizeof(u64)   // hash
   sizeof(Str) + // value
 end
@@ -23,7 +15,7 @@ macro hashsetValue.value sizeof(u64) + end
 macro @hashsetValue.value hashsetValue.value @Str end
 macro !hashsetValue.value hashsetValue.value !Str end
 
-macro sizeof(hashset.argholder)
+macro sizeof(Hashset.argholder)
   sizeof(Str)   // key
   sizeof(u64) + // hash
 end
@@ -42,66 +34,88 @@ macro !hashset.argholder.hash hashset.argholder.hash !64 end
 macro hashset_current @scratch cast(ptr) end
 macro !hashset_current !scratch end
 
-macro len(hashset.values) 256 end
+macro len(hashset.values) 5 end
+// macro len(hashset.values) 256 end
 macro hashset.values hashset.argholder sizeof(u64) + end
 macro !hashset.values hashset.values !64 end
 macro @hashset.values hashset.values @64 cast(ptr) end
 
-macro hashset.new
-  sizeof(hashset) malloc !hashset_current
-  sizeof(hashset.argholder) malloc !hashset.argholder
-  sizeof(hashsetValue) len(hashset.values) * malloc !hashset.values
-  hashset_current
+const offsetof(Hashset.argholder) sizeof(ptr) offset end
+const offsetof(Hashset.values) sizeof(ptr) offset end
+const sizeof(Hashset) reset end
+
+proc Hashset.values offsetof(Hashset.values) + end
+proc @Hashset.values Hashset.values @ptr end
+proc @*Hashset.values @ptr Hashset.values @ptr end
+proc !Hashset.values Hashset.values !ptr end
+proc !*Hashset.values @ptr Hashset.values !ptr end
+proc Hashset.argholder offsetof(Hashset.argholder) + end
+proc !Hashset.argholder Hashset.argholder !ptr end
+proc @Hashset.argholder Hashset.argholder @ptr end
+
+proc Hashset.new
+  memory set sizeof(ptr) end
+  sizeof(Hashset) malloc set !ptr
+  sizeof(Hashset.argholder) malloc set @ptr !Hashset.argholder
+  sizeof(HashsetValue) len(hashset.values) * malloc set !*Hashset.values
+  set @ptr
 end
 
 macro hashset.length len(hashset.values) end
-macro @hashset.length len(hashset.values) end
+macro @Hashset.length drop len(hashset.values) end
 
 
-macro hashset.delete 
-  !hashset_current
-  @hashset.values free drop
-  @hashset.argholder free drop
-  hashset_current free drop
+macro Hashset.delete 
+  dup @Hashset.values free drop
+  dup @Hashset.argholder free drop
+  free drop
+end
+
+proc _Hashset.hashandindex // ptr Str -- hash *value
+  hash_str
+  2dup swap @Hashset.length mod
+  sizeof(HashsetValue) * rot @Hashset.values +
 end
 
 // inputs: *hashset key(Str(count *data)) to put in set
-macro hashset.put
-  rot !hashset_current // save current hashset we are working with
-  !hashset.argholder.key // save the given key
+proc Hashset.put
+  memory key sizeof(Str) end
+  key !Str
+  memory set sizeof(ptr) end
+  set !ptr
+  memory hash sizeof(u64) end
 
-  @hashset.argholder.key hash_str !hashset.argholder.hash
-  @hashset.argholder.hash @hashset.length mod // index
-  sizeof(hashsetValue) * @hashset.values +
-  dup @hashset.argholder.key rot !hashsetValue.value
-      @hashset.argholder.hash swap !hashsetValue.hash
+  set @ptr key @Str _Hashset.hashandindex swap hash !64
+  dup key @Str rot !hashsetValue.value
+      hash @64 swap !hashsetValue.hash
 
 end
 
-macro hashset.contains
-  rot !hashset_current
-  !hashset.argholder.key // save the given key
+proc Hashset.contains
+  memory key sizeof(Str) end
+  key !Str
+  memory set sizeof(ptr) end
+  set !ptr
 
-  hashset_current
-  @hashset.argholder.key hash_str !hashset.argholder.hash
-  @hashset.argholder.hash @hashset.length mod // index
-  sizeof(hashsetValue) * @hashset.values +
-  if dup @hashsetValue.hash 0 != do
-     @hashset.argholder.key rot @hashsetValue.value streq
+  set @ptr key @Str _Hashset.hashandindex swap drop
+  dup @hashsetValue.hash 0 != if
+     key @Str rot @hashsetValue.value streq
   else
     drop
     false
   end
-
-  swap !hashset_current
 end
 
 // inputs: set key(count, *data)
 // returns: bool indicating if removed
-macro hashset.remove
-  if hashset.contains do
-    @hashset.argholder.hash @hashset.length mod // index
-    sizeof(hashsetValue) * @hashset.values +
+proc hashset.remove
+  memory key sizeof(Str) end
+  key !Str
+  memory set sizeof(ptr) end
+  set !ptr
+
+  set @ptr key @Str Hashset.contains if
+    set @ptr key @Str _Hashset.hashandindex swap drop
     dup 0 NULL rot !hashsetValue.value
         0 swap !hashsetValue.hash
     true
@@ -114,9 +128,9 @@ macro hashset.print
   !hashset_current
   "hashset stored at:" eputs hashset_current print
   "values: " eputsln
-  0 while dup @hashset.length < do
+  0 while dup hashset.length < do
     "  '" eputs
-    dup sizeof(hashsetValue) * @hashset.values +
+    dup sizeof(HashsetValue) * @hashset.values +
     dup @hashsetValue.value eputs
     "': " eputs
         @hashsetValue.hash print
@@ -124,21 +138,21 @@ macro hashset.print
   end drop
 end
 
-hashset.new
-dup "testtet" hashset.put
-dup "whut" hashset.put
-dup "ola" hashset.put
-dup "tttt" hashset.put
-// dup hashset.print
+Hashset.new
+dup "testtet" Hashset.put
+dup "whut" Hashset.put
+dup "ola" Hashset.put
+dup "tttt" Hashset.put
+dup hashset.print
 "Hashset contains 'whut': " eputs
-if dup "whut" hashset.contains do "yes" else "no" end eputsln
+dup "whut" Hashset.contains if "yes" else "no" end eputsln
 "Removing 'whut'" eputsln
-if dup "whut" hashset.remove do
+dup "whut" hashset.remove if
   "Removed 'whut'" eputsln
 else
   "Did not need to remove 'whut'" eputsln
 end
 "Hashset contains 'whut': " eputs
-if dup "whut" hashset.contains do "yes" else "no" end eputsln
+dup "whut" Hashset.contains if "yes" else "no" end eputsln
 // dup hashset.print
-hashset.delete
+Hashset.delete
